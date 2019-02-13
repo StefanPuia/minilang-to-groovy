@@ -1,0 +1,78 @@
+<title>Minilang to Groovy</title>
+
+<style>
+#inout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 50;
+}
+
+textarea {
+    resize: none;
+}
+
+#submit {
+    width: 150px;
+    height: 25px;
+    position: absolute;
+    bottom: 10;
+    left: calc(50vw - 75px);
+}
+</style>
+
+<div id="inout">
+    <div id="input"></div>
+    <div id="output"></div>
+</div>
+<button id="submit">Convert</button>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
+<script>
+window.addEventListener("load", () => {
+    textInput = document.querySelector("#input");
+    textOutput = document.querySelector("#output");
+
+    ace.edit("input", {
+        mode: "ace/mode/xml",
+        selectionStyle: "text"
+    })
+
+     ace.edit("output", {
+        mode: "ace/mode/groovy",
+        selectionStyle: "text"
+    })
+
+    document.querySelector("#submit").addEventListener("click", () => {
+        fetch("/convert", {
+            method: "post",
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                input: ace.edit("input").getSession().getValue()
+            })
+        })
+        .then(res => {
+            return res.json()
+        })
+        .then(data => {
+            if(data && data.output) {
+                ace.edit("output").getSession().setValue(data.output);
+            }
+            else {
+                ace.edit("output").getSession().setValue(data);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            ace.edit("output").getSession().setValue(err.toString());
+        })
+    })
+})
+</script>
