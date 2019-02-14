@@ -147,7 +147,8 @@ module.exports.selfclose = {
     "check-errors": (line, parent, resolvedChildren, s, tree) => {
         parameterUsage(line, ['error-list-name']);
         return `\n${spaces(s)}if(_ERROR_) {` +
-            `\n${spaces(s + 1)}return _ERROR_` +
+            `\n${spaces(s + 1)}request.setAttribute("_ERROR_MESSAGE_", _ERROR_)` +
+            `\n${spaces(s + 1)}return "error"` +
             `\n${spaces(s)}}`;
     },
 
@@ -504,9 +505,9 @@ module.exports.selfclose = {
         addDependency(config.customDependencies.SystemPropertyUtils);
         let text = `\n${spaces(s)}${p.field} = SystemPropertyUtils.getString(delegator, "${p.resource}", "${p.property}"`;
         if(p.default) {
-            text = `, "${p.default}"`;
+            text += `, "${p.default}"`;
         }
-        text += `);`;
+        text += `)`;
         return text;
     },
 
@@ -821,14 +822,18 @@ module.exports.open = {
             return { error: `Missing service name.` };
         }
         let text = `\n${spaces(s)}`;
-        if (resolvedChildren.length > 1) {
-            addVariables(resolvedChildren[1], line.number);
-            text += resolvedChildren[1] + ' = ';
+        let serviceCall = `dispatcher.runSync("${p['service-name']}", ${p['in-map-name']})`;
+        if (isParentOf(tree.children, ["result-to-field"]) && resolvedChildren.length > 0 && resolvedChildren[0].indexOf(',') > -1) {
+            let resultToField = resolvedChildren[0].split(',');
+            if (resultToField.length > 1) {
+                addVariables(resultToField[1], line.number);
+                text += resultToField[1] + ' = ';
+            }
+            text += `${serviceCall}.${resultToField[0]}`;
         }
-        if(resolvedChildren.length > 0) {
-            text += `${resolvedChildren[0]} = `;
-        }
-        text += `dispatcher.runSync("${p['service-name']}", ${p['in-map-name']})`;
+        else {
+            addWarning("notdef", `Child element not defined for "call-service" tag at line ${line.number}`);
+        }      
         return text;
     },
 
@@ -890,7 +895,7 @@ module.exports.open = {
         parameterUsage(line, ["combine"]);
         let p = line.properties;
         p.combine = p.combine ? p.combine.toLowerCase() : 'and';
-        if(isParentOf(tree.children, ["condition-list"]) || p.combine == 'or') {
+        if(isParentOf(tree.children, ["condition-list"]) || isChildOf(tree.parent, ["condition-list"]) || p.combine == 'or') {
             return `.${p.combine.toLowerCase()}()` +
                 `\n${spaces(s + 1)}${resolvedChildren.join(`\n${spaces(s + 1)}`)}` +
                 `\n${spaces(s)}.end${p.combine.substr(0, 1).toUpperCase()}${p.combine.substr(1).toLowerCase()}()`;

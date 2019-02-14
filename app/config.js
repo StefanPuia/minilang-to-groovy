@@ -15,6 +15,6 @@ module.exports = {
     customDependencies: {
         "EntityAggregateQuery"   : "com.stannah.base.entity.EntityAggregateQuery",
         "EntityConditionBuilder" : "com.stannah.base.entity.condition.EntityConditionBuilder",
-        "SystemPropertyUtils"    : "com.stannah.base.utils.SystemPropertyUtils",
+        "SystemPropertyUtils"    : "com.stannah.base.utils.SystemPropertyUtils"
     }
 };

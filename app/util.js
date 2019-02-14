@@ -250,14 +250,14 @@ function getRoundingMode (mode = "") {
  * @param {String} t warning type
  */
 function getWarnType(t) {
-	switch(t) {
-		case 'warn': return "WARNING";
-		case 'notdef': return "NOT DEFINED";
-		case 'suggest': return "SUGGESTION";
-		case 'compat': return "NOT COMPATIBLE";
-		case 'unknown': return "UNKNOWN";
-	}
-	return t;
+    switch(t) {
+        case 'warn': return "WARNING";
+        case 'notdef': return "NOT DEFINED";
+        case 'suggest': return "SUGGESTION";
+        case 'compat': return "NOT COMPATIBLE";
+        case 'unknown': return "UNKNOWN";
+    }
+    return t;
 }
 
 /**
@@ -265,10 +265,10 @@ function getWarnType(t) {
  * @param {String} e error type
  */
 function getErrType(t) {
-	switch(t) {
-		case 'parse': return "PARSE";
-	}
-	return t;
+    switch(t) {
+        case 'parse': return "PARSE";
+    }
+    return t;
 }
 
 /**
