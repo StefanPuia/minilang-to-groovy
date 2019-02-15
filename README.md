@@ -2,7 +2,7 @@
 1. install [node](https://nodejs.org/en/)
 1. clone the repo
 1. go to the repo folder
-1. run `npm i`
+1. run `npm i` (or extract the node_modules.zip archive if you don't have access through the proxy)
 1. run `node index`
 1. go to the [converter website](http://localhost:5055)
 1. paste your code in the left side of the screen

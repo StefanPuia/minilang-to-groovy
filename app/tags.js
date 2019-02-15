@@ -518,8 +518,11 @@ module.exports.selfclose = {
             return {error: `Missing service or map names.`};
         }
         addVariables(p['to-map'], line.number);
+        addVariables("userLogin", line.number);
+        addVariables("timeZone", line.number);
+        addVariables("locale", line.number);
         addDependency('org.ofbiz.service.ServiceUtil');
-        return `\n${spaces(s)}${p['to-map']} = ServiceUtil.setServiceFields(dispatcher, "${p['service-name']}", ${p.map})`;
+        return `\n${spaces(s)}${p['to-map']} = ServiceUtil.setServiceFields(dispatcher, "${p['service-name']}", ${p.map}, userLogin, timeZone, locale)`;
     },
 
     "remove-by-and": (line, parent, resolvedChildren, s, tree) => {
