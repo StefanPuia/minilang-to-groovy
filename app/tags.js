@@ -20,9 +20,6 @@ module.exports.root = {
     "converter": (line, parent, resolvedChildren, s, tree) => {
         parameterUsage(line, 0);
         let text = `${resolvedChildren.join('')}`;
-        if(!isParentOf(tree.children, ['simple-method', 'simple-methods'])) {
-            text = `def _ERROR_ = null\n` + text;
-        }
         return text;
     }
 };
@@ -44,7 +41,7 @@ module.exports['not-defined'] = {
 module.exports.script = {
     "script": (line, parent, resolvedChildren, s, tree) => {
         parameterUsage(line, 0);
-        if(line.raw.match(/<!\[CDATA/) || line.raw.match(/]]>/)) {
+        if(line.raw.match(/<!\[CDATA/) || line.raw.match(/\]\]>/)) {
             return '';
         }
         return `\n${spaces(s + line.spaces)}${line.raw}`;
@@ -146,10 +143,7 @@ module.exports.selfclose = {
 
     "check-errors": (line, parent, resolvedChildren, s, tree) => {
         parameterUsage(line, ['error-list-name']);
-        return `\n${spaces(s)}if(_ERROR_) {` +
-            `\n${spaces(s + 1)}request.setAttribute("_ERROR_MESSAGE_", _ERROR_)` +
-            `\n${spaces(s + 1)}return "error"` +
-            `\n${spaces(s)}}`;
+        return '';
     },
 
     "clear-field": (line, parent, resolvedChildren, s, tree) => {
@@ -771,7 +765,7 @@ module.exports.open = {
 
     "add-error": (line, parent, resolvedChildren, s, tree) => {
         parameterUsage(line, 0);
-        return `_ERROR_ = ${resolvedChildren.join('')}`;
+        return `return error(${resolvedChildren.join('')})`
     },
 
     "calcop": (line, parent, resolvedChildren, s, tree) => {
@@ -826,28 +820,43 @@ module.exports.open = {
         }
         let text = `\n${spaces(s)}`;
         let serviceCall = `dispatcher.runSync("${p['service-name']}", ${p['in-map-name']})`;
-        if (isParentOf(tree.children, ["result-to-field"]) && resolvedChildren.length > 0 && resolvedChildren[0].indexOf(',') > -1) {
-            let resultToField = resolvedChildren[0].split(',');
-            if (resultToField.length > 1) {
-                addVariables(resultToField[1], line.number);
-                text += resultToField[1] + ' = ';
+        if (resolvedChildren.length > 0 && resolvedChildren[0].indexOf(',') > -1) {
+            if (isParentOf(tree.children, ["result-to-field"])) {
+                let resultToField = resolvedChildren[0].split(',');
+                if (resultToField.length > 1) {
+                    addVariables(resultToField[1], line.number);
+                    text += resultToField[1] + ' = ';
+                }
+                text += `${serviceCall}.${resultToField[0]}`;
             }
-            text += `${serviceCall}.${resultToField[0]}`;
+            else {
+                addWarning("notdef", `Child element not defined for "call-service" tag at line ${line.number}`);
+            }
         }
         else {
-            addWarning("notdef", `Child element not defined for "call-service" tag at line ${line.number}`);
+            text += `runService("${p['service-name']}", ${p['in-map-name']})`;
         }      
         return text;
     },
 
     "call-class-method": (line, parent, resolvedChildren, s, tree) => {
-        parameterUsage(line, 3);
+        parameterUsage(line, ['method-name', 'class-name', 'ret-field']);
         let p = line.properties;
-        if (!p['method-name'] || !p['class-name'] || !p['ret-field']) {
-            return { error: `Missing method, class or return field.` };
+        if (!p['method-name'] || !p['class-name']) {
+            return { error: `Missing class or method name.` };
         }
-        addVariables(p['ret-field']);
-        return `\n${spaces(s)}${p['ret-field']} = ${p['class-name']}.${p['method-name']}(${resolvedChildren.join(', ')})`;
+        let className = p['class-name'];
+        if(className.indexOf('.') > -1) {
+            addDependency(className);
+            className = className.split('.').slice().pop();
+        }
+        let text = `\n${spaces(s)}`;
+        if (p['ret-field']) {
+            addVariables(p['ret-field']);
+            text += `${p['ret-field']} = `;
+        }
+        text += `${className}.${p['method-name']}(${resolvedChildren.join(', ')})`;
+        return text;
     },
 
     "check-permission": (line, parent, resolvedChildren, s, tree) => {
@@ -879,7 +888,7 @@ module.exports.open = {
         addDependency('org.ofbiz.security.OFBizSecurity');
         addWarning('unknown', `Check Permission must be followed by the <check-errors/> element for it to do anything meaningful.`);
         return `\n${spaces(s)}if (!${permissionStrings.join(' || !')}) {` +
-                `\n${spaces(s+1)}_ERROR_ = ${failProperty}` +
+                `\n${spaces(s+1)}return error(${failProperty})` +
                 `\n${spaces(s)}}`;
     },
 
@@ -1158,7 +1167,6 @@ module.exports.open = {
         parameterUsage(line, 2);
         return `\n${spaces(s)}// ${line.properties['short-description']}` + 
                 `\n${spaces(s)}def ${line.properties['method-name']}() {` + 
-                `\n${spaces(s+1)}def _ERROR_ = null` +
                 `\n${spaces(s+1)}${resolvedChildren.join(`\n${spaces(s+1)}`)}\n${spaces(s)}}`;
     },
 
